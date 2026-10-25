@@ -1,0 +1,1481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Football Pro 3D</title>
+<style>
+  :root { color-scheme: dark; --lime:#c8ff42; --panel:rgba(7,18,24,.78); }
+  * { box-sizing:border-box }
+  html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#07130f; font-family:Inter,system-ui,Segoe UI,Arial,sans-serif; color:#fff }
+  canvas { display:block }
+  #hud { position:fixed; inset:0; pointer-events:none; }
+  .topbar { position:absolute; top:18px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:18px; padding:12px 18px; border:1px solid #ffffff2c; border-radius:16px; background:var(--panel); backdrop-filter:blur(12px); box-shadow:0 12px 36px #0005; }
+  .team { min-width:88px; text-align:center; font-size:11px; font-weight:800; letter-spacing:1.5px; color:#d9e7e3 }
+  .score { font-size:30px; font-weight:900; letter-spacing:2px; font-variant-numeric:tabular-nums }
+  .dash { color:#91a49d; font-size:20px }
+  #clock { position:absolute; top:88px; left:50%; transform:translateX(-50%); background:#07120fcc; border:1px solid #ffffff24; border-radius:9px; padding:6px 12px; color:var(--lime); font-weight:800; font-size:13px; letter-spacing:1px }
+  .brand { position:absolute; top:22px; left:24px; font-size:12px; font-weight:900; letter-spacing:2px; color:#fff; text-shadow:0 2px 10px #000 }
+  .brand span { color:var(--lime) }
+  .help { position:absolute; bottom:22px; left:22px; padding:14px 16px; max-width:280px; border:1px solid #ffffff26; border-radius:14px; background:var(--panel); backdrop-filter:blur(10px); font-size:12px; line-height:1.75; color:#d5e0dc }
+  .help strong { color:var(--lime); letter-spacing:.7px; font-size:10px; }
+  kbd { display:inline-block; padding:1px 5px; margin:0 1px; border:1px solid #ffffff35; border-radius:4px; background:#ffffff10; color:white; font:inherit; font-weight:800 }
+  #status { position:absolute; top:46%; left:50%; transform:translate(-50%,-50%); text-align:center; font-size:clamp(24px,4vw,48px); font-weight:1000; font-style:italic; letter-spacing:1px; color:white; text-shadow:0 5px 30px #000; opacity:0; transition:opacity .2s; }
+  #status small { display:block; margin-top:8px; font-size:12px; font-style:normal; letter-spacing:2px; color:var(--lime) }
+  .right { position:absolute; right:22px; bottom:22px; display:flex; flex-direction:column; align-items:flex-end; gap:8px }
+  .meter { width:150px; height:7px; background:#ffffff24; border-radius:99px; overflow:hidden; border:1px solid #ffffff30 }
+  #power { width:0%; height:100%; background:var(--lime); transition:width .04s }
+  .meter-label { font-size:10px; font-weight:900; letter-spacing:1.4px; color:#e6eee9 }
+  #hint { position:absolute; top:145px; left:50%; transform:translateX(-50%); padding:7px 11px; border-radius:99px; background:#07120f9c; color:#e8f2ec; font-size:11px; white-space:nowrap; }
+  #aimdot { position:fixed; width:18px; height:18px; border:2px solid var(--lime); border-radius:50%; transform:translate(-50%,-50%); pointer-events:none; z-index:4; display:none; box-shadow:0 0 12px #c8ff4270; }
+  #aimdot:before,#aimdot:after { content:""; position:absolute; background:var(--lime); }
+  #aimdot:before { width:26px; height:1px; left:-6px; top:7px; }
+  #aimdot:after { height:26px; width:1px; top:-6px; left:7px; }
+  .help em { color:#c8ff42; font-style:normal; }
+  #start { position:fixed; inset:0; display:grid; place-items:center; background:radial-gradient(ellipse at center,#163d2a99,#020806e8); z-index:5; }
+  .start-card { width:min(440px,calc(100vw - 32px)); padding:30px; border-radius:22px; background:#07130ff0; border:1px solid #ffffff30; box-shadow:0 30px 100px #0009; text-align:center; }
+  .logo { color:var(--lime); font-size:11px; font-weight:1000; letter-spacing:4px; }
+  h1 { margin:10px 0 8px; font-size:clamp(30px,6vw,48px); line-height:1; letter-spacing:-1.5px; }
+  .sub { color:#a9beb4; font-size:13px; line-height:1.6; margin:0 auto 22px; max-width:330px }
+  button { pointer-events:auto; cursor:pointer; border:0; border-radius:11px; background:var(--lime); color:#10200c; padding:13px 24px; font-weight:1000; font-size:13px; letter-spacing:1px; box-shadow:0 7px 24px #a5f52c30 }
+  .footnote { margin-top:15px; color:#71867b; font-size:10px }
+  .menu-buttons{display:grid;grid-template-columns:1fr;gap:10px;margin-top:20px}
+  .menu-buttons button{width:100%;font-size:13px;padding:15px}
+  .menu-buttons .secondary{background:#172c23;color:#eaf4ed;border:1px solid #ffffff2c;box-shadow:none}
+  .menu-panel{display:none;text-align:left;margin-top:20px;padding-top:18px;border-top:1px solid #ffffff20}
+  .menu-panel h2{font-size:20px;margin:0 0 8px}
+  .menu-panel p{font-size:12px;line-height:1.6;color:#a9beb4}
+  .back-button{background:transparent;color:#c8ff42;border:1px solid #ffffff30;box-shadow:none;margin-top:10px}
+  .swatches{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+  .swatch{width:36px;height:36px;padding:0;border:3px solid #ffffff30;border-radius:50%;box-shadow:none}
+  .swatch.selected{outline:2px solid white;outline-offset:3px}
+  .custom-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:#d5e0dc}
+  .career-stat{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #ffffff18;font-size:12px}
+  .career-stat strong{color:var(--lime)}
+  @media(max-width:600px) { .brand{top:12px;left:12px;font-size:9px}.topbar{top:48px;gap:10px;padding:9px 12px}.team{min-width:65px;font-size:9px}.score{font-size:24px}#clock{top:108px}.help{left:10px;bottom:10px;max-width:210px;font-size:10px;padding:10px}.right{right:10px;bottom:10px}.meter{width:100px}#hint{top:145px;font-size:9px} }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="brand">FOOTBALL <span>PRO</span> / 3D</div>
+  <div class="topbar">
+    <div class="team">YOU <span style="color:#c8ff42">●</span></div>
+    <div class="score" id="score">0 <span class="dash">:</span> 0</div>
+    <div class="team"><span style="color:#ff655e">●</span> CPU</div>
+  </div>
+  <div id="clock">90:00</div>
+  <div id="hint">GET THE BALL • DRIBBLE • SHOOT</div>
+  <div id="status"></div>
+  <div class="help"><strong>CONTROLS</strong><br>
+    <kbd>W</kbd> Forward <kbd>S</kbd> Back<br>
+    <kbd>A</kbd> Left <kbd>D</kbd> Right<br>
+    <kbd>SHIFT</kbd> Sprint &nbsp; <kbd>SPACE</kbd> Jump<br>
+    <kbd>1</kbd> Shooting &nbsp; <kbd>2</kbd> Skills<br>
+    <kbd>3</kbd> Tackling &nbsp; <kbd>4</kbd> Passing<br>
+    <span id="mode-help"><kbd>Q</kbd> Shoot left &nbsp; <kbd>E</kbd> Finesse<br>
+    <kbd>R</kbd> Shoot right &nbsp; <kbd>T</kbd> Chip<br>
+    <kbd>F</kbd> Driven &nbsp; <kbd>X</kbd> Bicycle<br>
+    <kbd>C</kbd> Volley</span><br>
+    <em>Mouse</em> Aim; hold left mouse to charge a normal shot<br>
+    <kbd>BACKSPACE</kbd> Reset play &nbsp; <kbd>V</kbd> Camera view.<br><em>Free kick:</em> R/T curve • F knuckle • W/S height • A/D look and aim left/right • Space/click shoot.
+  </div>
+  <div class="right"><div class="meter-label">SHOT POWER</div><div class="meter"><div id="power"></div></div></div>
+</div>
+<div id="aimdot"></div>
+<div id="start">
+  <div class="start-card">
+    <div class="logo">NEXT-GEN FOOTBALL SIMULATION</div>
+    <h1>FOOTBALL<br>PRO 3D.</h1>
+    <p class="sub">Build your player, start your career, or jump straight into a match.</p>
+    <div id="main-menu" class="menu-buttons">
+      <button id="play">KICK OFF</button>
+      <button id="open-custom" class="secondary">CUSTOMISATION</button>
+      <button id="open-career" class="secondary">CAREER</button>
+    </div>
+    <div id="custom-panel" class="menu-panel">
+      <h2>PLAYER CUSTOMISATION</h2>
+      <p>Choose your kit colour. Your choice will be used when you play.</p>
+      <div class="custom-row"><span>JERSEY COLOUR</span><strong id="kit-name">Lime</strong></div>
+      <div class="swatches">
+        <button class="swatch selected" data-color="0xc8ff42" data-name="Lime" style="background:#c8ff42" aria-label="Lime kit"></button>
+        <button class="swatch" data-color="0xffffff" data-name="White" style="background:#ffffff" aria-label="White kit"></button>
+        <button class="swatch" data-color="0x42a5ff" data-name="Blue" style="background:#42a5ff" aria-label="Blue kit"></button>
+        <button class="swatch" data-color="0xff4545" data-name="Red" style="background:#ff4545" aria-label="Red kit"></button>
+        <button class="swatch" data-color="0xb76cff" data-name="Purple" style="background:#b76cff" aria-label="Purple kit"></button>
+        <button class="swatch" data-color="0xffa33b" data-name="Orange" style="background:#ffa33b" aria-label="Orange kit"></button>
+      </div>
+      <button id="custom-back" class="back-button">BACK TO MENU</button>
+    </div>
+    <div id="career-panel" class="menu-panel">
+      <h2>CAREER MODE</h2>
+      <p>Play matches, build your record, and try to finish your career with a winning record. Career stats update when each match finishes during this session.</p>
+      <div class="career-stat"><span>Matches played</span><strong id="career-matches">0</strong></div>
+      <div class="career-stat"><span>Wins</span><strong id="career-wins">0</strong></div>
+      <div class="career-stat"><span>Goals scored</span><strong id="career-goals">0</strong></div>
+      <button id="start-career" style="width:100%;margin-top:16px">START CAREER</button>
+      <button id="career-back" class="back-button">BACK TO MENU</button>
+    </div>
+    <div class="footnote">BEST ON DESKTOP • WASD TO MOVE • INTERNET REQUIRED TO LOAD 3D ENGINE</div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87b8cb);
+scene.fog = new THREE.Fog(0x87b8cb, 65, 145);
+
+const camera = new THREE.PerspectiveCamera(53, innerWidth/innerHeight, 0.1, 240);
+const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xe7f6ff,0x31553a,2.0));
+const sun = new THREE.DirectionalLight(0xfff4d8,3.0);
+sun.position.set(-25,45,-18);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-55;
+sun.shadow.camera.right=55;
+sun.shadow.camera.top=55;
+sun.shadow.camera.bottom=-55;
+scene.add(sun);
+
+const mat=(color,roughness=.8,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+const grass1=mat(0x246b3b), grass2=mat(0x2d7944), white=mat(0xf4f4e8), dark=mat(0x12201d), skin=mat(0xc98f67), boot=mat(0x14191a,.5), ballMat=mat(0xf8f8f2,.45);
+const pitchW=48, pitchL=82, halfW=pitchW/2, halfL=pitchL/2;
+
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(170,190),mat(0x315b37));
+ground.rotation.x=-Math.PI/2;
+ground.position.y=-.12;
+ground.receiveShadow=true;
+scene.add(ground);
+
+for(let i=0;i<10;i++){
+ const stripe=new THREE.Mesh(new THREE.PlaneGeometry(pitchW,pitchL/10),i%2?grass1:grass2);
+ stripe.rotation.x=-Math.PI/2;
+ stripe.position.set(0,0.001,-halfL+pitchL/20+i*pitchL/10);
+ stripe.receiveShadow=true;
+ scene.add(stripe);
+}
+
+function line(points, color=0xf4f4e8, radius=.055){
+ const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));
+ const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(20,points.length*3),radius,6,false),mat(color,.7));
+ mesh.position.y=.035;
+ scene.add(mesh);
+ return mesh;
+}
+function rectLine(x1,z1,x2,z2){
+ line([[x1,0,z1],[x2,0,z1],[x2,0,z2],[x1,0,z2],[x1,0,z1]]);
+}
+
+rectLine(-halfW,-halfL,halfW,halfL);
+line([[0,0,-halfL],[0,0,halfL]]);
+
+const circlePts=[];
+for(let i=0;i<=100;i++){
+ let a=i/100*Math.PI*2;
+ circlePts.push([Math.cos(a)*9.15,0,Math.sin(a)*9.15]);
+}
+line(circlePts);
+
+const boxW=20, boxD=9.5, sixW=9.5, sixD=3.6;
+rectLine(-boxW/2,-halfL,boxW/2,-halfL+boxD);
+rectLine(-sixW/2,-halfL,sixW/2,-halfL+sixD);
+rectLine(-boxW/2,halfL-boxD,boxW/2,halfL);
+rectLine(-sixW/2,halfL-sixD,sixW/2,halfL);
+
+function spot(x,z){
+ const s=new THREE.Mesh(new THREE.CircleGeometry(.12,16),white);
+ s.rotation.x=-Math.PI/2;
+ s.position.set(x,.04,z);
+ scene.add(s);
+}
+spot(0,-halfL+6.5);
+spot(0,halfL-6.5);
+spot(0,0);
+
+function goal(z, color=0xeceee8){
+ const frameMat=mat(color,.45,.18);
+ const bar=(x,y,zp,sx,sy,sz)=>{
+  const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),frameMat);
+  m.position.set(x,y,zp);
+  m.castShadow=true;
+  scene.add(m);
+ };
+ const sign=Math.sign(z), front=z;
+ bar(-7,2.3,front,.16,4.6,.16);
+ bar(7,2.3,front,.16,4.6,.16);
+ bar(0,4.6,front,14.2,.16,.16);
+ const netMat=new THREE.MeshBasicMaterial({color:0xdde8e2,wireframe:true,transparent:true,opacity:.23});
+ const net=new THREE.Mesh(new THREE.BoxGeometry(13.8,4.45,3.4,16,8,6),netMat);
+ net.position.set(0,2.22,z+sign*1.7);
+ scene.add(net);
+}
+goal(-halfL);
+goal(halfL);
+
+function makePlayer(teamColor, shortsColor, number, isKeeper=false){
+ const root=new THREE.Group();
+ // Fine procedural textile weave makes the kit catch light like modern match-engine fabric.
+ const makeFabricTexture=(base='#ffffff')=>{
+  const c=document.createElement('canvas'); c.width=128; c.height=128;
+  const g=c.getContext('2d'); g.fillStyle=base; g.fillRect(0,0,128,128);
+  for(let y=0;y<128;y+=3){g.fillStyle='rgba(0,0,0,0.035)';g.fillRect(0,y,128,1);}
+  for(let x=0;x<128;x+=4){g.fillStyle='rgba(255,255,255,0.055)';g.fillRect(x,0,1,128);}
+  for(let i=0;i<240;i++){g.fillStyle=i%2?'rgba(0,0,0,0.025)':'rgba(255,255,255,0.035)';g.fillRect(Math.random()*128,Math.random()*128,1,2);}
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(2,2); return t;
+ };
+ const fabric=makeFabricTexture();
+ const jersey=mat(teamColor,.78), shorts=mat(shortsColor,.82), sock=mat(isKeeper?teamColor:0xe8e9df,.86), face=mat(0xb9825e,.78), bootMat=mat(0x101315,.38,.08);
+ jersey.map=fabric; jersey.needsUpdate=true; shorts.map=fabric; shorts.needsUpdate=true;
+ const skinTone=0xb9825e;
+ const addPart=(geometry,material,x,y,z,rx=0,ry=0,rz=0)=>{
+  const mesh=new THREE.Mesh(geometry,material);
+  mesh.position.set(x,y,z); mesh.rotation.set(rx,ry,rz);
+  mesh.castShadow=true; mesh.receiveShadow=true; root.add(mesh); return mesh;
+ };
+ // A more athletic silhouette: tapered shirt, shoulder line and separate kit pieces.
+ const torso=addPart(new THREE.CapsuleGeometry(isKeeper?.43:.38,isKeeper?.67:.62,12,20),jersey,0,1.43,0);
+ torso.scale.set(1.08,1.02,0.70);
+ // Anatomical shoulder/chest shaping and fitted waist silhouette.
+ addPart(new THREE.SphereGeometry(.245,20,14),jersey,-.255,1.68,-.005).scale.set(1,.72,.76);
+ addPart(new THREE.SphereGeometry(.245,20,14),jersey,.255,1.68,-.005).scale.set(1,.72,.76);
+ addPart(new THREE.SphereGeometry(.31,20,14),face,0,1.98,0);
+ addPart(new THREE.CylinderGeometry(.105,.12,.18,12),face,0,2.05,0);
+ // Head with ears, hairline, eyes, eyebrows, nose and mouth facing toward -Z.
+ addPart(new THREE.SphereGeometry(.265,24,18),face,0,2.25,0);
+ const hairMat=mat(0x211c18,.94), eyeWhite=mat(0xf5f2e9,.35), eyeMat=mat(0x201b18,.35), mouthMat=mat(0x713c32,.9);
+ const hair=addPart(new THREE.SphereGeometry(.273,32,20,0,Math.PI*2,0,Math.PI*.58),hairMat,0,2.34,0);
+ hair.scale.set(1.02,.85,1.02);
+ // Short swept fringe and sideburns give the head a less toy-like silhouette.
+ addPart(new THREE.SphereGeometry(.18,18,10),hairMat,0,2.405,-.155).scale.set(1,.42,.52);
+ for(const sx of [-1,1]) addPart(new THREE.BoxGeometry(.055,.12,.09),hairMat,sx*.238,2.23,-.015,0,0,sx*.12);
+ for(const x of [-.095,.095]){
+  addPart(new THREE.SphereGeometry(.035,10,8),face,x*2,2.24,-.246);
+  addPart(new THREE.SphereGeometry(.034,12,8),eyeWhite,x,2.265,-.238);
+  addPart(new THREE.SphereGeometry(.018,10,8),eyeMat,x,2.265,-.269);
+  const brow=addPart(new THREE.BoxGeometry(.075,.018,.018),hairMat,x,2.315,-.248,0,0,x<0?.12:-.12);
+  addPart(new THREE.SphereGeometry(.025,10,8),face,x,2.25,-.268);
+ }
+ addPart(new THREE.ConeGeometry(.035,.09,8),face,0,2.22,-.285,Math.PI/2,0,0);
+ addPart(new THREE.BoxGeometry(.075,.012,.018),mouthMat,0,2.155,-.255);
+ // Shirt collar and subtle kit detailing.
+ addPart(new THREE.TorusGeometry(.115,.025,8,18),white,0,1.91,0,0,0,0);
+ const stripeMat=mat(0xf5f5ef,.72);
+ addPart(new THREE.BoxGeometry(.055,.65,.012),stripeMat,-.19,1.43,-.276);
+ addPart(new THREE.BoxGeometry(.055,.65,.012),stripeMat,.19,1.43,-.276);
+ // Shorts, waistband and side piping.
+ addPart(new THREE.BoxGeometry(.69,.34,.43),shorts,0,.91,0);
+ // Visible seams, waistband and subtle fabric panels on the shorts.
+ for(const sx of [-1,1]) addPart(new THREE.BoxGeometry(.012,.25,.012),stripeMat,sx*.12,.91,-.222);
+ addPart(new THREE.BoxGeometry(.7,.055,.44),jersey,0,1.095,0);
+ for(const x of [-.33,.33]) addPart(new THREE.BoxGeometry(.025,.26,.445),stripeMat,x,.91,0);
+ const legs=[];
+ for(const x of [-.215,.215]){
+  // Thighs, football socks, and boots are distinct so the kit reads clearly at distance.
+  const thigh=addPart(new THREE.CapsuleGeometry(.105,.27,5,10),face,x,.65,0);
+  thigh.scale.set(1,1.08,1);
+  const lower=addPart(new THREE.CapsuleGeometry(.085,.29,8,14),sock,x,.32,0);
+  const sockRib=addPart(new THREE.CylinderGeometry(.087,.087,.11,16),sock,x,.49,0);
+  for(let rib=0;rib<3;rib++) addPart(new THREE.TorusGeometry(.086,.006,4,16),white,x,.46+rib*.025,0,Math.PI/2,0,0);
+  const sockBand=addPart(new THREE.CylinderGeometry(.087,.087,.045,12),white,x,.43,0);
+  const shoe=addPart(new THREE.BoxGeometry(.205,.115,.34),bootMat,x,.125,-.075);
+  const bootUpper=addPart(new THREE.BoxGeometry(.17,.075,.19),mat(0x252a2b,.42,.03),x,.16,-.115);
+  for(let lace=0;lace<3;lace++) addPart(new THREE.BoxGeometry(.075,.009,.018),white,x,.197,-.17+lace*.035);
+  shoe.geometry.translate(0,0,-.025);
+  // Small studs on the outsole add football-boot detail.
+  const studMat=mat(0x080b0c,.35);
+  for(const sx of [-.065,.065]) for(const sz of [-.12,0,.105]) addPart(new THREE.CylinderGeometry(.018,.018,.025,6),studMat,x+sx,.064,-.075+sz);
+  legs.push({leg:thigh,shoe,baseX:x,lower});
+ }
+ // Upper-arm sleeves, skin forearms and hands.
+ for(const x of [-.47,.47]){
+  const side=x<0?-1:1;
+  addPart(new THREE.CapsuleGeometry(.115,.27,5,10),jersey,x,1.64,0,0,0,-side*.22);
+  addPart(new THREE.CapsuleGeometry(.072,.29,5,10),face,x+side*.035,1.35,-.005,0,0,-side*.12);
+  addPart(new THREE.SphereGeometry(.078,12,10),face,x+side*.07,1.17,-.015);
+  addPart(new THREE.TorusGeometry(.075,.018,6,12),white,x+side*.035,1.49,0,Math.PI/2,0,0);
+ }
+ // Captain-style chest badge and shirt number.
+ const badge=addPart(new THREE.CircleGeometry(.075,20),stripeMat,-.105,1.58,-.279);
+ const numCanvas=document.createElement('canvas');
+ numCanvas.width=128; numCanvas.height=128;
+ const ctx=numCanvas.getContext('2d');
+ ctx.clearRect(0,0,128,128); ctx.fillStyle='#ffffff'; ctx.font='bold 68px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(String(number),64,66);
+ const tex=new THREE.CanvasTexture(numCanvas);
+ const numberMesh=new THREE.Mesh(new THREE.PlaneGeometry(.19,.2),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false}));
+ numberMesh.position.set(.09,1.47,-.286); root.add(numberMesh);
+ root.userData.torso=torso;
+ root.userData.legs=legs;
+ root.userData.isKeeper=isKeeper;
+ root.userData.action={name:'idle',time:0,duration:0};
+ root.userData.gaitPhase=Math.random()*Math.PI*2;
+ if(isKeeper) root.userData.dive={time:0,duration:.58,cooldown:0,targetX:0,side:0,high:false};
+ root.userData.jerseyMaterial=jersey;
+ scene.add(root);
+ return root;
+}
+const player=makePlayer(0xc8ff42,0x182c22,10);
+const defenders=[
+ makePlayer(0xf05252,0x30333d,4),
+ makePlayer(0xe74c4c,0x30333d,5),
+ makePlayer(0xf05252,0x30333d,8)
+];
+defenders[0].position.set(-4,0,-7);
+defenders[1].position.set(4,0,-12);
+defenders[2].position.set(0,0,-18);
+
+const keeper=makePlayer(0x4f8cff,0x17294b,1,true);
+keeper.position.set(0,0,-halfL+1.5);
+const homeKeeper=makePlayer(0x4f8cff,0x17294b,1,true);
+homeKeeper.position.set(0,0,halfL-1.5);
+player.position.set(0,0,halfL-15);
+
+const ball=new THREE.Group();
+const sphere=new THREE.Mesh(new THREE.SphereGeometry(.34,28,22),ballMat);
+sphere.castShadow=true;
+ball.add(sphere);
+
+const black=mat(0x20272a,.8);
+for(let i=0;i<5;i++){
+ const a=i*Math.PI*2/5;
+ const patch=new THREE.Mesh(new THREE.CircleGeometry(.105,5),black);
+ patch.position.set(Math.cos(a)*.25,Math.sin(a)*.25,.22);
+ patch.lookAt(patch.position.clone().multiplyScalar(2));
+ sphere.add(patch);
+}
+const seam=new THREE.Mesh(new THREE.TorusGeometry(.27,.012,5,40),mat(0x444b4c));
+seam.rotation.x=Math.PI/2;
+sphere.add(seam);
+scene.add(ball);
+
+let ballVel=new THREE.Vector3(), scoreYou=0, scoreCPU=0, gameStarted=false, ended=false, elapsed=0, shotCharge=0, charging=false, cameraMode=0, lastKick=0, lastCPUKick=-10, messageTimer=0;
+let ballCurve=0;
+let chargingKey=null;
+let chargingType='normal';
+let jumpVelocity=0;
+let careerMode=false;
+let actionMode=1;
+let careerMatches=0,careerWins=0,careerGoals=0;
+let cameraPitch=0;
+let lastSkillMove=0;
+let freeKickActive=false, penaltyActive=false, freeKickStyle='straight', freeKickLift=3.5, lastFoulTime=-10, knuckleTimer=0;
+const keys={};
+
+const raycaster=new THREE.Raycaster(), mouseNdc=new THREE.Vector2();
+const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+const aimPoint=new THREE.Vector3(0,0,-halfL+1);
+const aimDot=document.getElementById('aimdot');
+
+// FIFA-style free-kick trajectory guide: a dashed flight path plus a target ring.
+const freeKickGuideMaterial = new THREE.LineDashedMaterial({
+ color:0xc8ff42, dashSize:.72, gapSize:.28, transparent:true, opacity:.96
+});
+const freeKickGuideGeometry = new THREE.BufferGeometry();
+const freeKickGuide = new THREE.Line(freeKickGuideGeometry, freeKickGuideMaterial);
+freeKickGuide.visible = false;
+freeKickGuide.renderOrder = 20;
+scene.add(freeKickGuide);
+const freeKickTarget = new THREE.Mesh(
+ new THREE.TorusGeometry(.62,.055,6,32),
+ new THREE.MeshBasicMaterial({color:0xc8ff42, transparent:true, opacity:.95, depthTest:false})
+);
+freeKickTarget.rotation.x = -Math.PI/2;
+freeKickTarget.position.y = .12;
+freeKickTarget.visible = false;
+freeKickTarget.renderOrder = 21;
+scene.add(freeKickTarget);
+
+let freeKickAimOffset = 0; // horizontal look/aim adjustment for set pieces
+
+function updateFreeKickGuide(){
+ if(!freeKickActive){
+  freeKickGuide.visible=false;
+  freeKickTarget.visible=false;
+  return;
+ }
+ freeKickGuide.visible=true;
+ freeKickTarget.visible=true;
+ const isPenalty=penaltyActive;
+ const aimX=(-ball.position.x*.18 + freeKickAimOffset)*1.15;
+ const forwardSpeed=isPenalty?22:24;
+ const curve=freeKickStyle==='curveLeft'?-16:freeKickStyle==='curveRight'?16:0;
+ const curveDecayRate=0.603; // matches the in-flight curve decay
+ const endZ=-halfL-.8;
+ const totalT=clamp((ball.position.z-endZ)/forwardSpeed,.15,2.2);
+ const points=[];
+ const steps=36;
+ let lastGroundX=ball.position.x;
+ for(let i=0;i<=steps;i++){
+  const t=totalT*i/steps;
+  const curveOffset=curve===0?0:curve*(t/curveDecayRate-(1-Math.exp(-curveDecayRate*t))/(curveDecayRate*curveDecayRate));
+  const x=ball.position.x+aimX*1.15*t+curveOffset;
+  const y=Math.max(.16,.38+freeKickLift*t-4.9*t*t);
+  const z=ball.position.z-forwardSpeed*t;
+  points.push(new THREE.Vector3(x,y,z));
+  lastGroundX=x;
+ }
+ freeKickGuide.geometry.dispose();
+ freeKickGuide.geometry=new THREE.BufferGeometry().setFromPoints(points);
+ freeKickGuide.computeLineDistances();
+ freeKickTarget.position.set(lastGroundX,.12,endZ);
+}
+
+let mouseAimActive=false;
+let mouseDown=false;
+let mouseX=innerWidth/2;
+let mouseY=innerHeight/2;
+let pointerLocked=false;
+const mouseSensitivity=0.002;
+
+const scoreEl=document.getElementById('score');
+const clockEl=document.getElementById('clock');
+const statusEl=document.getElementById('status');
+const powerEl=document.getElementById('power');
+const startEl=document.getElementById('start');
+
+function updateScore(){
+ scoreEl.innerHTML=`${scoreYou} <span class="dash">:</span> ${scoreCPU}`;
+}
+function announce(main,sub=''){
+ statusEl.innerHTML=main+(sub?`<small>${sub}</small>`:'');
+ statusEl.style.opacity=1;
+ messageTimer=2.1;
+}
+function resetPositions(){
+ freeKickActive=false; penaltyActive=false; freeKickStyle='straight'; freeKickLift=3.5; knuckleTimer=0;
+ player.position.set(0,0,halfL-15);
+ player.rotation.y=0;
+ jumpVelocity=0;
+ cameraPitch=0;
+
+ defenders[0].position.set(-4,0,-7);
+ defenders[1].position.set(4,0,-12);
+ defenders[2].position.set(0,0,-18);
+
+ keeper.position.set(0,0,-halfL+1.5);
+ homeKeeper.position.set(0,0,halfL-1.5);
+ ball.position.set(0,.35,halfL-14);
+ ballVel.set(0,0,0);
+ ballCurve=0;
+}
+resetPositions();
+
+const clockStart=90*60;
+
+function showMenuPanel(panelName){
+ document.getElementById('main-menu').style.display='none';
+ document.getElementById('custom-panel').style.display=panelName==='custom'?'block':'none';
+ document.getElementById('career-panel').style.display=panelName==='career'?'block':'none';
+}
+function returnToMenu(){
+ document.getElementById('main-menu').style.display='grid';
+ document.getElementById('custom-panel').style.display='none';
+ document.getElementById('career-panel').style.display='none';
+}
+function startGame(isCareer=false){
+ careerMode=isCareer;
+ gameStarted=true;ended=false;elapsed=0;scoreYou=0;scoreCPU=0;updateScore();
+ clockEl.textContent='90:00';resetPositions();startEl.style.display='none';
+ announce(isCareer?'CAREER MATCH':'KICK OFF',isCareer?'YOUR CAREER STARTS NOW':'WASD TO MOVE • SPACE TO JUMP');
+ renderer.domElement.requestPointerLock?.();
+}
+document.getElementById('play').addEventListener('click',()=>startGame(false));
+document.getElementById('open-custom').addEventListener('click',()=>showMenuPanel('custom'));
+document.getElementById('open-career').addEventListener('click',()=>{
+ document.getElementById('career-matches').textContent=careerMatches;
+ document.getElementById('career-wins').textContent=careerWins;
+ document.getElementById('career-goals').textContent=careerGoals;
+ showMenuPanel('career');
+});
+document.getElementById('custom-back').addEventListener('click',returnToMenu);
+document.getElementById('career-back').addEventListener('click',returnToMenu);
+document.getElementById('start-career').addEventListener('click',()=>startGame(true));
+document.querySelectorAll('.swatch').forEach(button=>button.addEventListener('click',()=>{
+ player.userData.jerseyMaterial.color.setHex(Number(button.dataset.color));
+ document.getElementById('kit-name').textContent=button.dataset.name;
+ document.querySelectorAll('.swatch').forEach(item=>item.classList.toggle('selected',item===button));
+}));
+
+document.addEventListener('pointerlockchange',()=>{
+ pointerLocked=document.pointerLockElement===renderer.domElement;
+ mouseAimActive=pointerLocked;
+ aimDot.style.display=pointerLocked?'block':'none';
+
+ if(pointerLocked){
+  aimDot.style.left='50%';
+  aimDot.style.top='50%';
+ }
+});
+
+document.addEventListener('pointerlockerror',()=>{
+ announce('MOUSE LOCK UNAVAILABLE','CLICK THE GAME AND TRY AGAIN');
+});
+
+window.addEventListener('keydown',e=>{
+ const k=e.key.toLowerCase();
+ keys[k]=true;
+
+ if([' ','arrowup','arrowdown','arrowleft','arrowright','backspace'].includes(k)){
+  e.preventDefault();
+ }
+
+ // V is the left stepover in Skills Mode; outside that mode it changes camera view.
+ if(k==='v'&&actionMode!==2)cameraMode=(cameraMode+1)%3;
+
+ // Number keys select the active action set.
+ if(!e.repeat&&['1','2','3','4'].includes(k)){
+  actionMode=Number(k);
+  const labels={1:'SHOOTING MODE',2:'SKILLS MODE',3:'TACKLING MODE',4:'PASSING MODE'};
+  const help={
+   1:'Hold/release Q Left • E Finesse • R Right • T Chip • F Driven • X Bicycle • C Volley',
+   2:'Q Forward dribble • E Drag back • R Cut left • T Cut right • Y Flick up • U Sombrero • F Stop • G Roll • H Rainbow • Z Chop right • X Chop left • C Fake shot • V Stepover left • B Stepover right',
+   3:'F Tackle the nearest opponent',
+   4:'Q Short pass • E Through pass • T Lob pass'
+  };
+  const modeHelp=document.getElementById('mode-help');
+  if(modeHelp)modeHelp.textContent=help[actionMode];
+  if(gameStarted&&!ended)announce(labels[actionMode],help[actionMode]);
+ }
+
+ if(gameStarted&&!ended&&!e.repeat&&freeKickActive){
+  if(k==='r'){freeKickStyle='curveLeft';announce(penaltyActive?'PENALTY':'FREE KICK','CURVE LEFT • SPACE OR CLICK TO SHOOT');}
+  else if(k==='t'){freeKickStyle='curveRight';announce(penaltyActive?'PENALTY':'FREE KICK','CURVE RIGHT • SPACE OR CLICK TO SHOOT');}
+  else if(k==='f'){freeKickStyle='knuckle';announce(penaltyActive?'PENALTY':'FREE KICK','KNUCKLE BALL • SPACE OR CLICK TO SHOOT');}
+  else if(k==='w'){freeKickLift=Math.min(12,freeKickLift+1);announce('SHOT HEIGHT',`HIGHER • ${freeKickLift.toFixed(1)}`);}
+  else if(k==='s'){freeKickLift=Math.max(-1,freeKickLift-1);announce('SHOT HEIGHT',`LOWER • ${freeKickLift.toFixed(1)}`);}
+  else if(k==='a'||k==='d'){
+   // A/D look and aim left/right; do not move the player or ball.
+   freeKickAimOffset+=(k==='a'?-0.65:0.65);
+   updateFreeKickGuide();
+   announce('FREE KICK AIM',k==='a'?'LOOK LEFT':'LOOK RIGHT');
+  }
+  else if(k===' '){e.preventDefault();takeFreeKick();return;}
+ }else if(gameStarted&&!ended&&!e.repeat){
+  if(actionMode===1&&['q','e','r','t','f','x','c'].includes(k)){
+   if(ballIsKickable()&&!charging){
+    charging=true;
+    chargingKey=k;
+    chargingType=({q:'left',e:'finesse',r:'right',t:'chip',f:'driven',x:'bicycle',c:'volley'})[k];
+    shotCharge=0;
+    powerEl.style.width='0%';
+   }
+  }else if(actionMode===2&&['q','e','r','t','y','u','f','g','h','z','x','c','v','b'].includes(k)){
+   skillMove(k);
+  }else if(actionMode===3&&k==='f'){
+   tackle();
+  }else if(actionMode===4&&['q','e','t'].includes(k)){
+   passBall(({q:'short',e:'through',t:'lob'})[k]);
+  }
+ }
+
+ if(k===' '&&gameStarted&&!ended&&!e.repeat&&!freeKickActive&&player.position.y<=0.001){
+  jumpVelocity=8.5;
+ }
+
+ if(k==='escape'&&pointerLocked){
+  document.exitPointerLock();
+ }
+
+ // Backspace is the reset key because R is the right-shot key in Shooting Mode.
+ if(k==='backspace'&&gameStarted){
+  if(ended){
+   scoreYou=0;
+   scoreCPU=0;
+   elapsed=0;
+   ended=false;
+   updateScore();
+   clockEl.textContent='90:00';
+   resetPositions();
+   announce('NEW MATCH','LET’S PLAY');
+  }else{
+   resetPositions();
+   announce('PLAY RESET');
+  }
+ }
+});
+window.addEventListener('keyup',e=>{
+ const k=e.key.toLowerCase();
+ keys[k]=false;
+ if(chargingKey===k){
+  shoot(chargingType);
+  chargingKey=null;
+  charging=false;
+  shotCharge=0;
+  powerEl.style.width='0%';
+ }
+});
+
+window.addEventListener('blur',()=>{
+ for(const k in keys)keys[k]=false;
+ charging=false;
+ chargingKey=null;
+ mouseDown=false;
+ shotCharge=0;
+});
+
+window.addEventListener('pointermove',e=>{
+ if(pointerLocked){
+  player.rotation.y-=e.movementX*mouseSensitivity;
+  cameraPitch=clamp(cameraPitch+e.movementY*mouseSensitivity,-0.65,0.65);
+  refreshMouseAim();
+  aimDot.style.left='50%';
+  aimDot.style.top='50%';
+  return;
+ }
+
+ mouseX=e.clientX;
+ mouseY=e.clientY;
+});
+
+window.addEventListener('pointerdown',e=>{
+ if(e.button!==0||!gameStarted)return;
+
+ if(!pointerLocked&&e.target===renderer.domElement){
+  renderer.domElement.requestPointerLock?.();
+ }
+
+ if(freeKickActive){
+  mouseDown=false;
+  charging=false;
+  return;
+ }
+ mouseDown=true;
+ charging=true;
+ shotCharge=0;
+});
+
+window.addEventListener('pointerup',e=>{
+ if(e.button!==0)return;
+ if(freeKickActive){takeFreeKick();return;}
+ if(!mouseDown)return;
+
+ mouseDown=false;
+
+ if(charging){
+  kick();
+  charging=false;
+  shotCharge=0;
+  powerEl.style.width='0%';
+ }
+});
+
+function skillMove(key){
+ const now=performance.now()/1000;
+ if(now-lastSkillMove<.3)return;
+ if(distXZ(player.position,ball.position)>1.35)return;
+ lastSkillMove=now;
+ ballCurve=0;
+ const skillNames={q:'dribble',e:'dragback',r:'cut',t:'cut',y:'flick',u:'sombrero',f:'stop',g:'roll',h:'rainbow',z:'chop',x:'chop',c:'fake',v:'stepover',b:'stepover'};
+ triggerAction(player,skillNames[key]||'skill',.72);
+
+ const yaw=player.rotation.y;
+ const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)).normalize();
+ const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)).normalize();
+ const groundY=.36;
+ const playerHeight=1.8;
+ const moveSpeed=keys.shift?10.5*1.48:7.1;
+ const setBallAhead=(distance)=>{
+  const target=player.position.clone().add(forward.clone().multiplyScalar(distance));
+  target.x=clamp(target.x,-halfW+.5,halfW-.5);
+  target.z=clamp(target.z,-halfL+.5,halfL-.5);
+  ball.position.set(target.x,groundY,target.z);
+ };
+ const sideTouch=(sideSign,forwardSpeed,sideSpeed)=>{
+  setBallAhead(.9);
+  ballVel.copy(forward.clone().multiplyScalar(forwardSpeed).add(right.clone().multiplyScalar(sideSign*sideSpeed)));
+  ballVel.y=.25;
+ };
+
+ switch(key){
+  case 'q': { // Fast forward dribble: move at player pace with a torso-height lift.
+   setBallAhead(1.25);
+   ball.position.y=1.05;
+   ballVel.copy(forward.clone().multiplyScalar(moveSpeed));
+   ballVel.y=2.4;
+   announce('FAST DRIBBLE');
+   break;
+  }
+  case 'e': { // Drag the ball back behind the player.
+   const target=player.position.clone().add(forward.clone().multiplyScalar(-.9));
+   ball.position.set(clamp(target.x,-halfW+.5,halfW-.5),groundY,clamp(target.z,-halfL+.5,halfL-.5));
+   ballVel.copy(forward.clone().multiplyScalar(-5.5));
+   ballVel.y=.2;
+   announce('DRAG BACK');
+   break;
+  }
+  case 'r': sideTouch(-1,3.8,6.2); announce('CUT LEFT'); break;
+  case 't': sideTouch(1,3.8,6.2); announce('CUT RIGHT'); break;
+  case 'y': { // Flick up to 1.25 times the approximate player height.
+   setBallAhead(.7);
+   ball.position.y=groundY;
+   ballVel.copy(forward.clone().multiplyScalar(2.2));
+   ballVel.y=Math.sqrt(2*9.8*(playerHeight*1.25-groundY));
+   announce('FLICK UP',`TARGET HEIGHT ${(playerHeight*1.25).toFixed(2)}M`);
+   break;
+  }
+  case 'u': { // Sombrero: lift the ball and arc it over and forward.
+   setBallAhead(-.35);
+   ball.position.y=groundY;
+   ballVel.copy(forward.clone().multiplyScalar(5.5));
+   ballVel.y=8.4;
+   announce('SOMBRERO FLICK');
+   break;
+  }
+  case 'f':
+   ballVel.set(0,0,0);
+   ball.position.y=groundY;
+   announce('BALL STOPPED');
+   break;
+  case 'g': {
+   setBallAhead(.65);
+   ballVel.copy(forward.clone().multiplyScalar(4.2));
+   ballVel.y=0;
+   announce('ROLL BALL');
+   break;
+  }
+  case 'h': {
+   setBallAhead(-.2);
+   ball.position.y=groundY;
+   ballVel.copy(forward.clone().multiplyScalar(7.0));
+   ballVel.y=9.2;
+   announce('RAINBOW FLICK');
+   break;
+  }
+  case 'z': sideTouch(1,4.8,7.0); announce('CHOP RIGHT'); break;
+  case 'x': sideTouch(-1,4.8,7.0); announce('CHOP LEFT'); break;
+  case 'c': fakeShot(); break;
+  case 'v':
+  case 'b': {
+   const sideSign=key==='v'?-1:1;
+   player.rotation.y+=sideSign*.22;
+   const side=new THREE.Vector3(Math.cos(player.rotation.y),0,-Math.sin(player.rotation.y)).normalize();
+   ball.position.x=clamp(ball.position.x+side.x*.45,-halfW+.5,halfW-.5);
+   ball.position.z=clamp(ball.position.z+side.z*.45,-halfL+.5,halfL-.5);
+   ballVel.copy(forward.clone().multiplyScalar(2.4).add(side.multiplyScalar(sideSign*2.2)));
+   ballVel.y=.2;
+   announce(key==='v'?'STEPOVER LEFT':'STEPOVER RIGHT');
+   break;
+  }
+ }
+}
+
+
+function triggerAction(root,name,duration=.65){
+ if(!root?.userData)return;
+ root.userData.action={name,time:0,duration};
+}
+
+function animatePlayerModel(root,dt,now,moving){
+ const data=root.userData;
+ if(!data.legs)return;
+ const action=data.action||{name:'idle',time:0,duration:0};
+ action.time+=dt;
+ const active=action.time<action.duration;
+ if(!active&&action.name!=='idle')action.name='idle';
+ data.action=action;
+ data.gaitPhase+=dt*(moving?11.5:2.0);
+ const phase=data.gaitPhase;
+ const stride=moving?1:0.07;
+ const fade=active?Math.sin(Math.PI*Math.min(1,action.time/Math.max(.01,action.duration))):0;
+ let kickLeg=0,kneeBend=0,sideSwing=0,bodyLean=0;
+ if(active){
+  const t=Math.min(1,action.time/action.duration);
+  const pulse=Math.sin(Math.PI*t);
+  switch(action.name){
+   case 'dribble': kickLeg=Math.sin(t*Math.PI*4)*.7; kneeBend=.65*pulse; break;
+   case 'dragback': kickLeg=-.95*pulse; kneeBend=.8*pulse; sideSwing=.18*pulse; break;
+   case 'cut': kickLeg=.75*pulse; kneeBend=.45*pulse; sideSwing=(t<.5?1:-1)*.5*pulse; bodyLean=sideSwing*.25; break;
+   case 'flick': case 'sombrero': case 'rainbow': kickLeg=-.65*pulse; kneeBend=1.0*pulse; bodyLean=-.12*pulse; break;
+   case 'chop': kickLeg=.95*pulse; kneeBend=.72*pulse; sideSwing=.45*pulse; break;
+   case 'stepover': kickLeg=Math.sin(t*Math.PI*4)*.8; kneeBend=.75*pulse; sideSwing=.35*pulse; break;
+   case 'roll': kickLeg=.35*pulse; kneeBend=.35*pulse; break;
+   case 'stop': kneeBend=.3*pulse; break;
+   case 'fake': kickLeg=.8*pulse; kneeBend=.6*pulse; sideSwing=-.35*pulse; bodyLean=.12*pulse; break;
+   case 'tackle': kickLeg=1.05*pulse; kneeBend=.25*pulse; bodyLean=-.35*pulse; break;
+   case 'pass': kickLeg=.9*pulse; kneeBend=.4*pulse; bodyLean=.08*pulse; break;
+   case 'kick': case 'volley': kickLeg=1.2*pulse; kneeBend=.55*pulse; bodyLean=.12*pulse; break;
+   case 'bicycle': kickLeg=Math.sin(t*Math.PI*2)*1.35*pulse; kneeBend=.7*pulse; bodyLean=-.45*pulse; break;
+  }
+ }
+ data.legs.forEach((l,i)=>{
+  const sign=i===0?1:-1;
+  const gait=Math.sin(phase+i*Math.PI)*stride;
+  const thighX=gait*.68+kickLeg*(i===0?1:-.18);
+  const lowerX=Math.max(0,-gait)*.9+kneeBend*(i===0?1:.35);
+  l.leg.rotation.x=thighX;
+  l.leg.rotation.z=sideSwing*sign*.55;
+  if(l.lower)l.lower.rotation.x=lowerX;
+  l.shoe.rotation.x=thighX*.28-lowerX*.25;
+  l.shoe.rotation.z=sideSwing*sign*.3;
+ });
+ // A subtle upper-body counterbalance makes turns and kicks feel less robotic.
+ if(data.torso){data.torso.rotation.x=bodyLean;}
+}
+
+function ballIsKickable(){
+ return distXZ(player.position,ball.position)<=1.2;
+}
+
+// Three-player wall: spread across the goal mouth, not bunched directly
+// in the kicker's shooting lane. Keep the line exactly seven yards goal-side
+// of the ball (6.4 game units). Penalties do not use a wall.
+function positionDefensiveWall(){
+ if(!freeKickActive || penaltyActive)return;
+ const goalZ = ball.position.z >= 0 ? -halfL : halfL;
+ const towardGoal = Math.sign(goalZ - ball.position.z) || -1;
+ const wallZ = clamp(ball.position.z + towardGoal * 6.4, -halfL + 1.2, halfL - 1.2);
+ // The goal is 14 units wide; spread defenders across most of its opening.
+ // Keep the wall centred on the goal rather than on the player's x position.
+ const wallXs = [-5.4, 0, 5.4];
+ defenders.forEach((d, i) => {
+  d.position.set(wallXs[i] ?? 0, 0, wallZ);
+  d.rotation.y = towardGoal < 0 ? Math.PI : 0;
+ });
+}
+
+function awardFoul(defender){
+ if(freeKickActive||ended)return;
+ const now=performance.now()/1000;
+ if(now-lastFoulTime<2.4)return;
+ lastFoulTime=now;
+ const px=player.position.x, pz=player.position.z;
+ const inPenaltyArea=Math.abs(px)<boxW/2+0.8 &&
+  ((pz < -halfL+boxD+0.6 && pz > -halfL-0.2) || (pz > halfL-boxD-0.6 && pz < halfL+0.2));
+ penaltyActive=inPenaltyArea;
+ freeKickActive=true;
+ freeKickStyle='straight';
+ freeKickLift=3.5;
+ freeKickAimOffset=0;
+ charging=false; chargingKey=null; mouseDown=false; shotCharge=0; powerEl.style.width='0%';
+ ballVel.set(0,0,0); ballCurve=0; knuckleTimer=0;
+ if(penaltyActive){
+  ball.position.set(0,.36,-halfL+6.5);
+  player.position.set(0,0,-halfL+9.0);
+  player.rotation.y=0;
+  announce('PENALTY!','R CURVE LEFT • T CURVE RIGHT • F KNUCKLE • W/S HEIGHT • A/D LOOK & AIM LEFT/RIGHT • SPACE/CLICK SHOOT');
+ }else{
+  ball.position.set(clamp(px,-halfW+1,halfW-1),.36,clamp(pz,-halfL+2,halfL-2));
+  player.position.set(ball.position.x,0,clamp(ball.position.z+1.55,-halfL+.7,halfL-.7));
+  player.rotation.y=0;
+  positionDefensiveWall();
+  announce('FREE KICK!','DEFENSIVE WALL 5 YARDS AWAY • R CURVE LEFT • T CURVE RIGHT • F KNUCKLE • W/S HEIGHT • A/D LOOK & AIM • SPACE/CLICK SHOOT');
+ }
+}
+
+function takeFreeKick(){
+ if(!freeKickActive||ended)return;
+ triggerAction(player,'kick',.7);
+ const isPenalty=penaltyActive;
+ const style=freeKickStyle;
+ const lift=freeKickLift;
+ const aimX=-ball.position.x*.18 + freeKickAimOffset;
+ ballVel.set(aimX*1.15, lift, - (isPenalty?22:24));
+ ball.position.y=.38;
+ ballCurve=style==='curveLeft'?-16:style==='curveRight'?16:0;
+ knuckleTimer=style==='knuckle'?1.4:0;
+ freeKickActive=false; penaltyActive=false;
+ lastKick=performance.now()/1000;
+ announce(isPenalty?'PENALTY TAKEN':'FREE KICK TAKEN',style==='knuckle'?'KNUCKLE BALL':style==='curveLeft'?'CURVING LEFT':style==='curveRight'?'CURVING RIGHT':'STRAIGHT SHOT');
+}
+
+function tackle(){
+ const now=performance.now()/1000;
+ triggerAction(player,'tackle',.62);
+ if(now-lastSkillMove<.55)return;
+ lastSkillMove=now;
+ let target=null,nearest=Infinity;
+ for(const d of defenders){
+  const gap=distXZ(player.position,d.position);
+  if(gap<nearest){nearest=gap;target=d;}
+ }
+ if(!target||nearest>1.55){announce('TACKLE MISSED','GET CLOSER TO AN OPPONENT');return;}
+ const away=new THREE.Vector3(target.position.x-player.position.x,0,target.position.z-player.position.z);
+ if(away.lengthSq()<.001)away.set(0,0,-1);
+ away.normalize();
+ target.position.x=clamp(target.position.x+away.x*1.8,-halfW+.5,halfW-.5);
+ target.position.z=clamp(target.position.z+away.z*1.8,-halfL+.5,halfL-.5);
+ if(distXZ(player.position,ball.position)<1.45){
+  ball.position.set(player.position.x-away.x*.8,Math.max(.36,ball.position.y),player.position.z-away.z*.8);
+  ballVel.set(away.x*2.8,0.5,away.z*2.8);
+ }
+ announce('TACKLE!','WIN THE BALL');
+}
+
+function passBall(type='short'){
+ const now=performance.now()/1000;
+ triggerAction(player,'pass',.48);
+ if(now-lastKick<.28||!ballIsKickable())return;
+ lastKick=now;
+ const yaw=player.rotation.y;
+ const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)).normalize();
+ const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+ let dir=forward.clone(),power=type==='short'?10:type==='through'?17:13,lift=type==='lob'?7:1.2;
+ if(type==='through')dir.add(right.multiplyScalar(0.12)).normalize();
+ ballVel.copy(dir.multiplyScalar(power));
+ ballVel.y=lift;
+ ballCurve=0;
+ announce(type==='short'?'SHORT PASS':type==='through'?'THROUGH PASS':'LOB PASS');
+}
+
+function fakeShot(){
+ const now=performance.now()/1000;
+ triggerAction(player,'fake',.55);
+ if(now-lastKick<.22||!ballIsKickable())return;
+ lastKick=now;
+
+ // Sell the shot with a quick body feint and a small sideways touch.
+ player.rotation.y+=.38;
+ const side=new THREE.Vector3(Math.cos(player.rotation.y),0,-Math.sin(player.rotation.y));
+ ballVel.x+=side.x*2.2;
+ ballVel.z+=side.z*2.2;
+ announce('FAKE SHOT','FOOL THE DEFENDER');
+}
+
+function shoot(type='normal'){
+ const now=performance.now()/1000;
+ triggerAction(player,type==='bicycle'?'bicycle':type==='volley'?'volley':'kick',.68);
+ if(now-lastKick<.28||!ballIsKickable())return;
+ lastKick=now;
+
+ let yaw=player.rotation.y;
+ if(type==='left')yaw+=.32;
+ if(type==='right')yaw-=.32;
+
+ const dir=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)).normalize();
+ let power=17+shotCharge*15;
+ let lift=clamp(3+shotCharge*2.8-Math.tan(cameraPitch)*power*.45,-3,15);
+ ballCurve=0;
+
+ if(type==='finesse'){
+  power=16+shotCharge*12;
+  lift=3.8+shotCharge*2;
+  ballCurve=(Math.cos(yaw)>=0?1:-1)*(4.5+shotCharge*2);
+  announce('FINESSE SHOT');
+ }else if(type==='chip'){
+  power=12+shotCharge*8;
+  lift=11+shotCharge*5;
+  announce('CHIP SHOT');
+ }else if(type==='driven'){
+  power=25+shotCharge*12;
+  lift=1+shotCharge*1.2;
+  announce('DRIVEN SHOT');
+ }else if(type==='bicycle'){
+  jumpVelocity=9.5;
+  power=20+shotCharge*10;
+  lift=13+shotCharge*3;
+  announce('BICYCLE KICK!');
+ }else if(type==='volley'){
+  power=20+shotCharge*12;
+  lift=7+shotCharge*3;
+  ballCurve=(Math.cos(yaw)>=0?1:-1)*(3.2+shotCharge*3);
+  announce('VOLLEY!','CURVED VOLLEY SHOT');
+ }else if(type==='left'){
+  announce('SHOT LEFT');
+ }else if(type==='right'){
+  announce('SHOT RIGHT');
+ }
+
+ ballVel.copy(dir.multiplyScalar(power));
+ ballVel.y=lift;
+ ball.position.y=Math.max(ball.position.y,.42);
+}
+
+function kick(){
+ // Hold/release left mouse still fires a normal straight shot.
+ shoot('normal');
+}
+
+function refreshMouseAim(){
+ if(pointerLocked){
+  const forward=new THREE.Vector3(
+   -Math.sin(player.rotation.y),
+   0,
+   -Math.cos(player.rotation.y)
+  );
+
+  aimPoint.copy(player.position).add(forward.multiplyScalar(30));
+  aimPoint.x=clamp(aimPoint.x,-halfW,halfW);
+  aimPoint.z=clamp(aimPoint.z,-halfL,halfL);
+  return;
+ }
+
+ mouseNdc.x=(mouseX/innerWidth)*2-1;
+ mouseNdc.y=-(mouseY/innerHeight)*2+1;
+
+ raycaster.setFromCamera(mouseNdc,camera);
+ const hit=new THREE.Vector3();
+
+ if(raycaster.ray.intersectPlane(groundPlane,hit)){
+  aimPoint.set(
+   clamp(hit.x,-halfW,halfW),
+   0,
+   clamp(hit.z,-halfL,halfL)
+  );
+ }
+}
+
+function clamp(v,a,b){
+ return Math.max(a,Math.min(b,v));
+}
+function distXZ(a,b){
+ return Math.hypot(a.x-b.x,a.z-b.z);
+}
+
+let previous=performance.now();
+
+function animate(now){
+ requestAnimationFrame(animate);
+ updateFreeKickGuide();
+
+ let dt=Math.min((now-previous)/1000,.033);
+ previous=now;
+
+ if(!gameStarted){
+  renderer.render(scene,camera);
+  return;
+ }
+
+ if(!ended){
+  elapsed+=dt;
+
+  const remaining=Math.max(0,clockStart-elapsed*5);
+  const mm=Math.floor(remaining/60);
+  const ss=Math.floor(remaining%60);
+
+  clockEl.textContent=`${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+
+  if(remaining<=0){
+   ended=true;
+   if(careerMode){
+    careerMatches++;
+    careerGoals+=scoreYou;
+    if(scoreYou>scoreCPU)careerWins++;
+    document.getElementById('career-matches').textContent=careerMatches;
+    document.getElementById('career-wins').textContent=careerWins;
+    document.getElementById('career-goals').textContent=careerGoals;
+   }
+   announce(
+    scoreYou>scoreCPU?'FULL TIME — YOU WIN':
+    scoreYou<scoreCPU?'FULL TIME — CPU WINS':
+    'FULL TIME — DRAW',
+    careerMode?'CAREER STATS UPDATED • PRESS BACKSPACE TO RESET':'PRESS BACKSPACE TO RESET PLAY'
+   );
+  }
+
+  if(!freeKickActive){
+  // Mouse controls turning while pointer lock is active.
+  // A and D no longer rotate the player.
+  if(mouseAimActive){
+   refreshMouseAim();
+  }
+
+  // Preserve free-mouse aiming when pointer lock is off.
+  if(mouseAimActive&&!pointerLocked){
+   const dx=aimPoint.x-player.position.x;
+   const dz=aimPoint.z-player.position.z;
+
+   if(Math.hypot(dx,dz)>.7){
+    const targetAngle=Math.atan2(-dx,-dz);
+
+    const difference=Math.atan2(
+     Math.sin(targetAngle-player.rotation.y),
+     Math.cos(targetAngle-player.rotation.y)
+    );
+
+    player.rotation.y+=difference*Math.min(1,dt*4);
+   }
+  }
+
+  // W/S move forward and backward.
+  const forwardInput=(keys.w?1:0)-(keys.s?1:0);
+
+  // A/D strafe left and right relative to where the player faces.
+  const strafeInput=(keys.d?1:0)-(keys.a?1:0);
+
+  const forward=new THREE.Vector3(
+   -Math.sin(player.rotation.y),
+   0,
+   -Math.cos(player.rotation.y)
+  );
+
+  const right=new THREE.Vector3(
+   Math.cos(player.rotation.y),
+   0,
+   -Math.sin(player.rotation.y)
+  );
+
+  const move=forward.multiplyScalar(forwardInput)
+   .add(right.multiplyScalar(strafeInput));
+
+  // Prevent diagonal movement from being faster.
+  if(move.lengthSq()>1)move.normalize();
+
+  const sprint=keys.shift?1.48:1;
+  const speed=keys.shift?10.5:7.1;
+
+  player.position.x=clamp(
+   player.position.x+move.x*speed*sprint*dt,
+   -halfW+.65,
+   halfW-.65
+  );
+
+  player.position.z=clamp(
+   player.position.z+move.z*speed*sprint*dt,
+   -halfL+.65,
+   halfL-.65
+  );
+
+  // Jump physics: SPACE launches the player; gravity brings them back to the pitch.
+  if(player.position.y>0 || jumpVelocity>0){
+   jumpVelocity-=22*dt;
+   player.position.y+=jumpVelocity*dt;
+   if(player.position.y<=0){
+    player.position.y=0;
+    jumpVelocity=0;
+   }
+  }
+
+  // Procedural footballer locomotion: hips, knees and boots all animate.
+  // Skill actions temporarily override the normal run cycle with recognisable
+  // stepovers, cuts, drag-backs, flicks, tackles and kicking follow-throughs.
+  animatePlayerModel(player,dt,now,move.lengthSq()>0.02);
+  defenders.forEach((d,i)=>animatePlayerModel(d,dt,now,distXZ(d.position,ball.position)>0.35));
+
+  if(charging){
+   shotCharge=Math.min(1,shotCharge+dt*.8);
+   powerEl.style.width=(shotCharge*100)+'%';
+  }
+
+  // Dribble: the ball follows just ahead of the player when close.
+  const gap=distXZ(player.position,ball.position);
+
+  if(gap<1.05&&ballVel.length()<5.8){
+   const front=new THREE.Vector3(0,0,-1).applyAxisAngle(
+    new THREE.Vector3(0,1,0),
+    player.rotation.y
+   );
+
+   const target=player.position.clone().add(front.multiplyScalar(1.15));
+
+   ballVel.x+=(target.x-ball.position.x)*13*dt;
+   ballVel.z+=(target.z-ball.position.z)*13*dt;
+
+   if(ball.position.y<.5)ballVel.y=Math.max(ballVel.y,0);
+  }
+
+  // CPU defenders pursue the ball and can poke it away.
+  defenders.forEach((d,i)=>{
+   if(freeKickActive){
+    if(!penaltyActive)positionDefensiveWall();
+    return;
+   }
+   const target=ball.position.clone();
+   const delta=target.sub(d.position);
+   delta.y=0;
+
+   const range=delta.length();
+
+   if(range>.01){
+    delta.normalize();
+    const pace=range>2?5.8:2.8;
+    d.position.addScaledVector(delta,pace*dt);
+    d.rotation.y=Math.atan2(-delta.x,-delta.z);
+   }
+
+   d.position.x=clamp(d.position.x,-halfW+1,halfW-1);
+   d.position.z=clamp(d.position.z,-halfL+2,halfL-2);
+
+   // Only call a foul when the opponent is close enough to challenge and
+   // approaches from behind the player's facing direction. Missing the ball
+   // on its own is NOT a foul in this game's rules.
+   const playerBallDistance=distXZ(player.position,ball.position);
+   const defenderPlayerDistance=distXZ(d.position,player.position);
+   if(!freeKickActive && playerBallDistance<1.45 && defenderPlayerDistance<0.92 && now/1000-lastFoulTime>2.4){
+    const forwardOfPlayer=new THREE.Vector3(-Math.sin(player.rotation.y),0,-Math.cos(player.rotation.y)).normalize();
+    const toDefender=new THREE.Vector3(d.position.x-player.position.x,0,d.position.z-player.position.z).normalize();
+    const comingFromBehind=forwardOfPlayer.dot(toDefender)<-0.35;
+    if(comingFromBehind){
+     awardFoul(d);
+     return;
+    }
+    // Front/side challenges are treated as clean tackles, even if the ball
+    // wasn't touched perfectly: only a rear challenge can trigger a foul.
+    ballVel.set((ball.position.x-d.position.x)*4,0.8,Math.sign(ball.position.z-d.position.z)*5.5);
+   }
+   if(freeKickActive)return;
+   const defenderBallDistance=distXZ(d.position,ball.position);
+   const inHomeBox=ball.position.z>halfL-boxD && Math.abs(ball.position.x)<boxW/2+1;
+   const cpuCanShoot=defenderBallDistance<1.15 && inHomeBox && ball.position.y<1.8 && now/1000-lastCPUKick>1.6;
+
+   if(cpuCanShoot){
+    // Shoot toward the player's goal, aiming slightly away from the home keeper.
+    lastCPUKick=now/1000;
+    const targetX=clamp((homeKeeper.position.x>ball.position.x ? -2.8 : 2.8),-4.2,4.2);
+    const shotDir=new THREE.Vector3(targetX-ball.position.x,0,halfL+1-ball.position.z).normalize();
+    ballVel.x=shotDir.x*15.5;
+    ballVel.z=shotDir.z*18.5;
+    ballVel.y=2.4+Math.random()*1.5;
+    ballCurve=0;
+   }else if(defenderBallDistance<0.78&&now/1000-lastKick>1.2&&ballVel.length()<8){
+    // If not in shooting range, poke the ball forward toward the player's half.
+    const towardGoal=new THREE.Vector3(-ball.position.x*.12,0,1).normalize();
+    ballVel.x=towardGoal.x*6.5;
+    ballVel.z=towardGoal.z*7.5;
+    ballVel.y=1.2;
+   }
+  });
+
+  // Body-sized player/opponent collision: stop models overlapping unrealistically.
+  const allOutfield=[player,...defenders];
+  for(let i=0;i<allOutfield.length;i++){
+   for(let j=i+1;j<allOutfield.length;j++){
+    const a=allOutfield[i], b=allOutfield[j];
+    const dx=b.position.x-a.position.x, dz=b.position.z-a.position.z;
+    const distance=Math.hypot(dx,dz);
+    const minDistance=0.72;
+    if(distance>0.001&&distance<minDistance){
+     const push=(minDistance-distance)*.5;
+     a.position.x-=dx/distance*push; a.position.z-=dz/distance*push;
+     b.position.x+=dx/distance*push; b.position.z+=dz/distance*push;
+    }
+   }
+  }
+
+  // Goalkeepers track the ball and dive high/low to their left or right
+  // when a shot is travelling toward their goal.
+  const keeperTarget=clamp(ball.position.x,-6.15,6.15);
+  function updateKeeper(keeperPlayer, goalSide){
+   const dive=keeperPlayer.userData.dive;
+   dive.cooldown=Math.max(0,dive.cooldown-dt);
+   const approaching=(goalSide<0 ? ballVel.z<-1.5 && ball.position.z<-halfL+11 : ballVel.z>1.5 && ball.position.z>halfL-11);
+   const predictedX=clamp(ball.position.x+ballVel.x*.22,-6.3,6.3);
+   const side=Math.sign(predictedX-keeperPlayer.position.x);
+
+   if(dive.time<=0 && dive.cooldown<=0 && approaching && Math.abs(predictedX-keeperPlayer.position.x)>.7){
+    dive.time=dive.duration;
+    dive.cooldown=1.05;
+    dive.targetX=predictedX;
+    dive.side=side;
+    // A higher ball triggers an upward/high dive; a low ball triggers a downward/low dive.
+    dive.high=ball.position.y>1.35;
+   }
+
+   if(dive.time>0){
+    dive.time=Math.max(0,dive.time-dt);
+    const progress=1-dive.time/dive.duration;
+    const arc=Math.sin(Math.PI*clamp(progress,0,1));
+    keeperPlayer.position.x+=(dive.targetX-keeperPlayer.position.x)*Math.min(1,dt*13);
+    keeperPlayer.position.y=dive.high?arc*1.15:arc*.08;
+    keeperPlayer.rotation.z=-dive.side*arc*(dive.high?1.12:.92);
+    keeperPlayer.rotation.x=-goalSide*arc*.12;
+    if(dive.time<=0){
+     keeperPlayer.position.y=0;
+     keeperPlayer.rotation.set(0,goalSide<0?0:Math.PI,0);
+    }
+   }else{
+    keeperPlayer.position.y=0;
+    keeperPlayer.rotation.z=0;
+    keeperPlayer.rotation.x=0;
+    keeperPlayer.position.x+=(keeperTarget-keeperPlayer.position.x)*Math.min(1,dt*4.2);
+    keeperPlayer.rotation.y=goalSide<0?0:Math.PI;
+   }
+   // Opponent goalkeeper rushes off the line when the ball enters their penalty area.
+   // The home keeper stays on their line; both still track shots and can dive.
+   if(keeperPlayer.userData.clearCooldown===undefined) keeperPlayer.userData.clearCooldown=0;
+   keeperPlayer.userData.clearCooldown=Math.max(0,keeperPlayer.userData.clearCooldown-dt);
+   if(goalSide<0){
+    const ballInOppBox = ball.position.z < -halfL + boxD + 1.0 &&
+                         ball.position.z > -halfL - 1.0 &&
+                         Math.abs(ball.position.x) < boxW/2 + 1.0;
+    const rushTargetZ = ballInOppBox
+      ? clamp(ball.position.z + 2.0, -halfL + 1.5, -halfL + boxD - 0.6)
+      : -halfL + 1.5;
+    // Rush toward the attacker, but stop short of the ball and recover when play leaves the box.
+    keeperPlayer.position.z += (rushTargetZ - keeperPlayer.position.z) * Math.min(1, dt * (ballInOppBox ? 3.8 : 2.4));
+    if(ballInOppBox && dive.time<=0){
+      const rushX=clamp(ball.position.x + ballVel.x*0.12,-boxW/2+0.8,boxW/2-0.8);
+      keeperPlayer.position.x += (rushX-keeperPlayer.position.x)*Math.min(1,dt*3.2);
+    }
+   }else{
+    keeperPlayer.position.z=halfL-1.5;
+   }
+  }
+  updateKeeper(keeper,-1);
+  updateKeeper(homeKeeper,1);
+
+  // When the opponent keeper rushes out and reaches a loose ball in their box,
+  // clear it decisively away from goal and back toward midfield.
+  const oppBoxNow = ball.position.z < -halfL + boxD + 1.0 &&
+                    ball.position.z > -halfL - 1.0 &&
+                    Math.abs(ball.position.x) < boxW/2 + 1.0;
+  const keeperCanClear = oppBoxNow &&
+    distXZ(keeper.position,ball.position) < 1.55 &&
+    ball.position.y < 2.2 && keeper.userData.clearCooldown <= 0 &&
+    (Math.abs(ballVel.z) > 0.35 || Math.abs(ballVel.x) > 0.35);
+  if(keeperCanClear){
+    const side = Math.sign(ball.position.x-keeper.position.x) || (Math.random()<.5?-1:1);
+    ball.position.x += side*.28;
+    ball.position.y = Math.max(ball.position.y,.48);
+    ballVel.set(side*(4.2+Math.random()*1.8), 2.8+Math.random()*1.1, 10.5+Math.random()*2.5);
+    ballCurve=0;
+    keeper.userData.clearCooldown=1.15;
+    announce('KEEPER CLEARANCE','THE KEEPER GETS IT AWAY!');
+  }
+
+  // Curved free kicks and finesse shots get a stronger, longer-lasting sideways force.
+  if(Math.abs(ballCurve)>.05&&ball.position.y>.36){
+   ballVel.x+=ballCurve*dt;
+   ballCurve*=Math.pow(.99,dt*60);
+  }else if(ball.position.y<=.36){
+   ballCurve=0;
+  }
+  if(knuckleTimer>0&&ball.position.y>.36){
+   knuckleTimer=Math.max(0,knuckleTimer-dt);
+   ballVel.x+=Math.sin((1.4-knuckleTimer)*23)*2.6*dt;
+   ballVel.y+=Math.sin((1.4-knuckleTimer)*17)*1.3*dt;
+  }
+
+  // Ball movement, gravity, and rolling/bounce physics.
+  ball.position.addScaledVector(ballVel,dt);
+  ballVel.y-=9.8*dt;
+
+  if(ball.position.y<.34){
+   ball.position.y=.34;
+
+   if(ballVel.y<0)ballVel.y*=-.42;
+   if(Math.abs(ballVel.y)<.8)ballVel.y=0;
+
+   ballVel.x*=Math.pow(.986,dt*60);
+   ballVel.z*=Math.pow(.986,dt*60);
+  }
+
+  ballVel.x*=Math.pow(.996,dt*60);
+  ballVel.z*=Math.pow(.996,dt*60);
+
+  sphere.rotation.x+=ballVel.z*dt*1.7;
+  sphere.rotation.z-=ballVel.x*dt*1.7;
+
+  // Sidelines and end-line rebounds.
+  const inMouth=Math.abs(ball.position.x)<6.82&&ball.position.y<4.45;
+
+  if(ball.position.x<-halfW+.35){
+   ball.position.x=-halfW+.35;
+   ballVel.x=Math.abs(ballVel.x)*.62;
+  }
+
+  if(ball.position.x>halfW-.35){
+   ball.position.x=halfW-.35;
+   ballVel.x=-Math.abs(ballVel.x)*.62;
+  }
+
+  if(ball.position.z<-halfL+.25&&(!inMouth||ball.position.y>4.45)){
+   ball.position.z=-halfL+.25;
+   ballVel.z=Math.abs(ballVel.z)*.6;
+  }
+
+  if(ball.position.z>halfL-.25&&(!inMouth||ball.position.y>4.45)){
+   ball.position.z=halfL-.25;
+   ballVel.z=-Math.abs(ballVel.z)*.6;
+  }
+
+  if(ball.position.z<-halfL-1&&inMouth){
+   scoreYou++;
+   updateScore();
+   announce('GOOOAL!','TOP BINS. ABSOLUTE CLASS.');
+   resetPositions();
+  }
+
+  if(ball.position.z>halfL+1&&inMouth){
+   scoreCPU++;
+   updateScore();
+   announce('CPU SCORES','THEY FOUND A WAY THROUGH.');
+   resetPositions();
+  }
+
+  // Goalkeepers use a generous, body-sized collision zone at each goal.
+  if(distXZ(keeper.position,ball.position)<(keeper.userData.dive.time>0?1.35:0.9)&&ball.position.z<-halfL+3.5&&ball.position.y<4.5&&ballVel.z<0){
+   ballVel.z=Math.abs(ballVel.z)*.82;
+   ballVel.x+=(ball.position.x-keeper.position.x)*3.4;
+   ballVel.y=Math.max(ballVel.y,2.5);
+  }
+  if(distXZ(homeKeeper.position,ball.position)<(homeKeeper.userData.dive.time>0?1.35:0.9)&&ball.position.z>halfL-3.5&&ball.position.y<4.5&&ballVel.z>0){
+   ballVel.z=-Math.abs(ballVel.z)*.82;
+   ballVel.x+=(ball.position.x-homeKeeper.position.x)*3.4;
+   ballVel.y=Math.max(ballVel.y,2.5);
+  }
+
+  if(ball.position.y>13)ballVel.y-=12*dt;
+ }
+
+  }
+
+ if(messageTimer>0){
+  messageTimer-=dt;
+  if(messageTimer<=0)statusEl.style.opacity=0;
+ }
+
+ // Third-person camera smoothly follows behind the player's facing direction.
+ let camPos,look;
+
+ if(cameraMode===0){
+  const forward=new THREE.Vector3(
+   -Math.sin(player.rotation.y),
+   0,
+   -Math.cos(player.rotation.y)
+  );
+
+  const behind=forward.clone().multiplyScalar(-13);
+
+  camPos=new THREE.Vector3(
+   player.position.x+behind.x,
+   player.position.y+8,
+   player.position.z+behind.z
+  );
+
+  look=player.position.clone().add(
+   forward.clone().multiplyScalar(10)
+  );
+
+  // Mouse vertical movement tilts the view up and down.
+  look.y=player.position.y+1.2-Math.tan(cameraPitch)*10;
+
+ }else if(cameraMode===1){
+  camPos=new THREE.Vector3(
+   player.position.x,
+   20,
+   player.position.z+23
+  );
+  look=new THREE.Vector3(0,player.position.y-Math.tan(cameraPitch)*10,-10);
+
+ }else{
+  camPos=new THREE.Vector3(0,36,20);
+  look=new THREE.Vector3(0,-Math.tan(cameraPitch)*10,0);
+ }
+
+ camera.position.lerp(camPos,1-Math.pow(.05,dt));
+ camera.lookAt(look);
+
+ renderer.render(scene,camera);
+}
+
+requestAnimationFrame(animate);
+
+window.addEventListener('resize',()=>{
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+ renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+});
+</script>
+</body>
+</html>
